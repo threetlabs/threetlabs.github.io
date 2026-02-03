@@ -1,3 +1,3 @@
 Threet Labs
 
-Home page
+Custom Software Solutions!
