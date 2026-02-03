@@ -1,11 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ThreetLabs Gateway</title>
+    <meta charset="UTF-8">
+    <title>MBCWCSS Home</title>
 </head>
 <body>
+
+<div id="MBCWCSS">
     <h1>Welcome to ThreetLabs</h1>
-    <p>Our main site is hosted on an Android Phone!</p>
+    <p>This main site is hosted on an Github!</p>
     <a href="https://www.threetlabs.com">Enter Main Site</a>
+</div>
+
+<script>
+(function () {
+    const container = document.getElementById("MBCWCSS");
+    const text = container.querySelector("h1");
+
+    function applyLayout() {
+        document.body.style.margin = "0";
+        document.body.style.width = "100vw";
+        document.body.style.height = "100vh";
+        document.body.style.display = "flex";
+        document.body.style.justifyContent = "center";
+        document.body.style.alignItems = "center";
+
+        container.style.display = "flex";
+        container.style.justifyContent = "center";
+        container.style.alignItems = "center";
+        container.style.width = "100%";
+        container.style.height = "100%";
+
+        text.style.fontSize = Math.max(24, window.innerWidth * 0.04) + "px";
+        text.style.fontFamily = "Arial, sans-serif";
+    }
+
+    applyLayout();
+    window.addEventListener("resize", applyLayout);
+})();
+</script>
+
 </body>
 </html>
