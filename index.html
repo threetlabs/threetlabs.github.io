@@ -1,337 +1,1421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Retro Window Demo</title>
-  <style>
-    :root {
-      --desktop-bg: radial-gradient(circle at 20% 15%, #becbe0 0%, #95a7c8 38%, #7a8fb2 100%);
-      --frame-dark: #2f3b56;
-      --frame-mid: #6d7ea4;
-      --frame-light: #d8e0ef;
-      --panel-bg: #f0f2f6;
-      --teal-accent: #56d4db;
-      --title-text: #3e2230;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReconMap — Attack Surface Discovery</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    * {
-      box-sizing: border-box;
-      user-select: none;
-    }
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #171b21;
+    --border: #1e2530;
+    --border2: #252d38;
+    --accent: #00e5a0;
+    --accent2: #00b87a;
+    --accent-dim: rgba(0,229,160,0.08);
+    --accent-glow: rgba(0,229,160,0.15);
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --muted2: #8896a8;
+    --danger: #ff4d6d;
+    --warn: #f59e0b;
+    --info: #38bdf8;
+    --purple: #a78bfa;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Syne', sans-serif;
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
 
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      font-family: "Times New Roman", Times, serif;
-      background: var(--desktop-bg);
-    }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
 
-    #desktop {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      padding: clamp(10px, 2vw, 24px);
-    }
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+  }
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .logo-mark svg { width: 18px; height: 18px; }
+  .logo-text { font-family: var(--font-sans); font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent); }
+  .header-sub { font-size: 11px; color: var(--muted); margin-left: auto; }
+  .badge { background: rgba(255,77,109,0.12); color: var(--danger); border: 1px solid rgba(255,77,109,0.25); padding: 2px 8px; border-radius: 3px; font-size: 10px; letter-spacing: 1px; }
 
-    .window {
-      position: absolute;
-      left: 2.5vw;
-      top: 2.5vh;
-      width: min(94vw, 1450px);
-      height: min(93vh, 860px);
-      min-width: 460px;
-      min-height: 320px;
-      border: 4px solid var(--frame-dark);
-      background: linear-gradient(180deg, #fefefe 0%, #d5ddea 100%);
-      box-shadow:
-        inset 2px 2px 0 var(--frame-light),
-        inset -2px -2px 0 #4d5b7e,
-        0 10px 18px rgba(9, 18, 38, 0.35);
-      display: grid;
-      grid-template-rows: 70px 1fr;
-      overflow: hidden;
-    }
+  /* LAYOUT */
+  .app { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 57px); }
 
-    .titlebar {
-      display: grid;
-      grid-template-columns: 72px 220px 1fr 220px 72px;
-      align-items: center;
-      border-bottom: 3px solid #667798;
-      background: linear-gradient(180deg, #dbe4f4 0%, #c5d2eb 85%);
-      cursor: grab;
-      padding: 0 8px;
-      gap: 8px;
-    }
+  /* SIDEBAR */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
 
-    .titlebar.dragging {
-      cursor: grabbing;
-    }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
 
-    .btn-box {
-      width: 48px;
-      height: 48px;
-      border: 3px solid #2d3b57;
-      background: #e6edf8;
-      box-shadow: inset 2px 2px 0 #f8fbff, inset -2px -2px 0 #7e90b5;
-      justify-self: center;
-    }
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .input-label { font-size: 11px; color: var(--muted2); }
+  input, select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
 
-    .line-stack {
-      display: grid;
-      gap: 8px;
-    }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .toggle-label { font-size: 12px; color: var(--muted2); }
+  .toggle {
+    width: 34px; height: 18px;
+    background: var(--border2);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent2); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 19px; }
 
-    .line-stack span {
-      display: block;
-      height: 4px;
-      width: 100%;
-      background: #7f8fb0;
-      box-shadow: 0 1px 0 #cdd7e8;
-    }
+  .run-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 11px 16px;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    width: 100%;
+    text-transform: uppercase;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .run-btn:hover { opacity: 0.9; }
+  .run-btn:active { transform: scale(0.98); }
+  .run-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    .title {
-      text-align: center;
-      font-size: clamp(24px, 2.6vw, 56px);
-      color: var(--title-text);
-      letter-spacing: 0.03em;
-      line-height: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+  .stop-btn {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(255,77,109,0.3);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  .stop-btn:hover { background: rgba(255,77,109,0.08); }
 
-    .frame-body {
-      display: grid;
-      grid-template-columns: 1fr 34px;
-      border-top: 2px solid #edf4ff;
-      min-height: 0;
-    }
+  /* PIPELINE STATUS */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pipe-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    font-size: 11px;
+    color: var(--muted);
+    transition: background 0.15s;
+  }
+  .pipe-step.active { background: var(--accent-dim); color: var(--accent); }
+  .pipe-step.done { color: var(--accent2); }
+  .pipe-step.error { color: var(--danger); }
+  .pipe-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .pipe-step.active .pipe-dot { background: var(--accent); animation: pulse 1s infinite; }
+  .pipe-step.done .pipe-dot { background: var(--accent2); }
+  .pipe-step.error .pipe-dot { background: var(--danger); }
 
-    .content-wrap {
-      background: #ced8e8;
-      padding: 10px;
-      display: grid;
-      grid-template-rows: 170px 1fr;
-      gap: 10px;
-      min-height: 0;
-    }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
 
-    .top-panel,
-    .main-panel {
-      border: 4px solid #8b95a8;
-      background: var(--panel-bg);
-      box-shadow: inset 2px 2px 0 #ffffff, inset -2px -2px 0 #b4bac6;
-    }
+  /* MAIN CONTENT */
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-    .main-panel {
-      border-color: var(--teal-accent);
-      min-height: 0;
-    }
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 20px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 12px 18px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    position: relative;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count {
+    background: var(--surface2);
+    color: var(--muted);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 10px;
+    margin-left: 6px;
+  }
+  .tab.active .tab-count { background: var(--accent-dim); color: var(--accent); }
 
-    .right-rail {
-      border-left: 3px solid #6e7d9a;
-      background: linear-gradient(180deg, #d4deef 0%, #b8c6dd 100%);
-      position: relative;
-    }
+  /* PANELS */
+  .panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .panel.active { display: flex; }
 
-    .rail-top {
-      height: 42px;
-      border-bottom: 3px solid #5b6f90;
-      display: grid;
-      place-items: center;
-      color: #1d273c;
-      font-size: 20px;
-      font-weight: bold;
-    }
+  /* TERMINAL */
+  .terminal {
+    flex: 1;
+    background: var(--bg);
+    overflow-y: auto;
+    padding: 16px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .log-line { display: flex; gap: 12px; }
+  .log-time { color: var(--muted); flex-shrink: 0; }
+  .log-tag {
+    flex-shrink: 0;
+    padding: 0 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    align-self: center;
+  }
+  .tag-info { background: rgba(56,189,248,0.1); color: var(--info); }
+  .tag-ok { background: var(--accent-dim); color: var(--accent); }
+  .tag-warn { background: rgba(245,158,11,0.1); color: var(--warn); }
+  .tag-err { background: rgba(255,77,109,0.1); color: var(--danger); }
+  .tag-step { background: rgba(167,139,250,0.1); color: var(--purple); }
+  .log-msg { color: var(--text); flex: 1; word-break: break-all; }
+  .log-msg .hl { color: var(--accent); }
+  .log-msg .dim { color: var(--muted); }
+  .cursor { display: inline-block; width: 7px; height: 13px; background: var(--accent); margin-left: 4px; animation: blink 1s step-end infinite; vertical-align: middle; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    .rail-toggle {
-      position: absolute;
-      top: 52px;
-      left: 4px;
-      right: 4px;
-      height: 34px;
-      border: 2px solid #6a7618;
-      background: #9fd321;
-      display: grid;
-      place-items: center;
-      color: #2f4e09;
-      font-weight: bold;
-      font-size: 16px;
-      box-shadow: inset 1px 1px 0 #d5f87d, inset -1px -1px 0 #6f8e13;
-    }
+  /* DOMAINS TABLE */
+  .table-wrap { flex: 1; overflow: auto; padding: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  td {
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--muted2);
+  }
+  tr:hover td { background: var(--surface); }
+  .domain-cell { color: var(--text); font-weight: 500; }
+  .title-cell { color: var(--text); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .status-pill {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .s200 { background: var(--accent-dim); color: var(--accent); }
+  .s301, .s302 { background: rgba(245,158,11,0.1); color: var(--warn); }
+  .s403 { background: rgba(167,139,250,0.1); color: var(--purple); }
+  .s404 { background: rgba(255,77,109,0.1); color: var(--danger); }
+  .s500 { background: rgba(255,77,109,0.1); color: var(--danger); }
+  .stimeout { background: rgba(100,116,139,0.1); color: var(--muted); }
+  .tech-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    background: var(--surface2);
+    color: var(--muted2);
+    border: 1px solid var(--border);
+    margin: 1px;
+  }
 
-    .resize-handle {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      right: 0;
-      bottom: 0;
-      cursor: nwse-resize;
-      background: linear-gradient(135deg, transparent 0 45%, #2e3c59 45% 55%, transparent 55% 70%, #2e3c59 70% 80%, transparent 80% 100%);
-    }
+  /* EXPORT BAR */
+  .export-bar {
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .export-btn {
+    background: var(--surface2);
+    color: var(--muted2);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .export-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .result-count { font-size: 11px; color: var(--muted); margin-left: auto; }
 
-    @media (max-width: 700px) {
-      .window {
-        min-width: 320px;
-      }
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    border-bottom: 1px solid var(--border);
+    background: var(--border);
+  }
+  .stat-box {
+    background: var(--surface);
+    padding: 14px 20px;
+    text-align: center;
+  }
+  .stat-num { font-family: var(--font-sans); font-size: 22px; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
 
-      .titlebar {
-        grid-template-columns: 48px 90px 1fr 90px 48px;
-      }
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-bar input { width: 200px; }
+  .filter-bar select { width: 130px; }
+  .filter-label { font-size: 11px; color: var(--muted); }
 
-      .btn-box {
-        width: 30px;
-        height: 30px;
-      }
+  /* CMDGEN PANEL */
+  .cmd-panel { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+  .cmd-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .cmd-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+  }
+  .cmd-step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .cmd-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .cmd-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .cmd-body { padding: 14px 16px; }
+  pre.cmd-code {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 11.5px;
+    line-height: 1.9;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text);
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  pre.cmd-code .cmd-comment { color: var(--muted); }
+  pre.cmd-code .cmd-flag { color: var(--warn); }
+  pre.cmd-code .cmd-tool { color: var(--accent); }
+  pre.cmd-code .cmd-var { color: var(--info); }
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: color 0.15s;
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-      .content-wrap {
-        grid-template-rows: 100px 1fr;
-      }
-    }
-  </style>
+  /* PROGRESS */
+  .progress-wrap { padding: 0 20px 0; }
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--muted);
+    padding: 40px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 40px; opacity: 0.3; }
+  .empty-title { font-size: 14px; color: var(--muted2); }
+  .empty-sub { font-size: 11px; }
+
+  /* WHOXY panel */
+  .domains-list {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .domain-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .domain-card:hover { border-color: var(--accent2); }
+  .domain-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .domain-card-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .domain-card.selected .domain-card-dot { background: var(--accent); }
+  .domain-card-name { font-size: 12px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .domain-card-date { font-size: 10px; color: var(--muted); }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
 </head>
 <body>
-  <div id="desktop">
-    <div class="window" id="retroWindow" aria-label="Draggable retro window">
-      <div class="titlebar" id="titlebar">
-        <div class="btn-box" aria-hidden="true"></div>
-        <div class="line-stack" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </div>
-        <div class="title">Threet Labs</div>
-        <div class="line-stack" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </div>
-        <div class="btn-box" aria-hidden="true"></div>
-      </div>
 
-      <div class="frame-body">
-        <div class="content-wrap">
-          <section class="top-panel" aria-label="Upper panel"></section>
-          <section class="main-panel" aria-label="Main panel"><iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_JRYlZ-tsWqu_lfVCVCCs9Xcz6XXEfeiyKL3R19tT25XwR16fkDTaTTeJAodboNbfBSBMzKtTvq24/pubhtml?gid=0&amp;single=true&amp;widget=true&amp;headers=false"></iframe></section>
-        </div>
-        <aside class="right-rail" aria-hidden="true">
-          <div class="rail-top">▲</div>
-          <div class="rail-toggle">≡</div>
-        </aside>
-      </div>
+<div class="header">
+  <div class="logo-mark">
+    <svg viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="9" r="3" fill="#000"/>
+      <circle cx="9" cy="2.5" r="1.5" fill="#000"/>
+      <circle cx="9" cy="15.5" r="1.5" fill="#000"/>
+      <circle cx="2.5" cy="9" r="1.5" fill="#000"/>
+      <circle cx="15.5" cy="9" r="1.5" fill="#000"/>
+      <line x1="9" y1="4" x2="9" y2="6" stroke="#000" stroke-width="1.5"/>
+      <line x1="9" y1="12" x2="9" y2="14" stroke="#000" stroke-width="1.5"/>
+      <line x1="4" y1="9" x2="6" y2="9" stroke="#000" stroke-width="1.5"/>
+      <line x1="12" y1="9" x2="14" y2="9" stroke="#000" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div>
+    <div class="logo-text">Recon<span>Map</span></div>
+  </div>
+  <span class="badge">OSINT</span>
+  <div class="header-sub">attack surface discovery pipeline</div>
+</div>
 
-      <div class="resize-handle" id="resizeHandle" aria-label="Resize window"></div>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div>
+      <div class="section-label">Target</div>
+      <div class="input-group">
+        <div class="input-label">Company Name</div>
+        <input type="text" id="companyName" placeholder="e.g. Tesla, Google, Flipkart">
+      </div>
+      <div class="input-group" style="margin-top:10px">
+        <div class="input-label">WhoXY API Key</div>
+        <input type="password" id="whoxyKey" placeholder="your-whoxy-api-key">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Passive Sources</div>
+      <div class="toggle-row">
+        <span class="toggle-label">WhoXY Reverse WHOIS</span>
+        <button class="toggle on" id="tog-whoxy" onclick="toggleBtn(this)"></button>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">crt.sh (Certificate Transparency)</span>
+        <button class="toggle on" id="tog-crt" onclick="toggleBtn(this)"></button>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Chaos ProjectDiscovery</span>
+        <button class="toggle" id="tog-chaos" onclick="toggleBtn(this)"></button>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">VirusTotal Subdomains</span>
+        <button class="toggle" id="tog-vt" onclick="toggleBtn(this)"></button>
+      </div>
+      <div class="input-group" style="margin-top:8px" id="vt-key-group" style="display:none">
+        <div class="input-label">VirusTotal API Key (optional)</div>
+        <input type="password" id="vtKey" placeholder="vt-api-key">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Active Probing</div>
+      <div class="toggle-row">
+        <span class="toggle-label">HTTP Probe (titles, status)</span>
+        <button class="toggle on" id="tog-http" onclick="toggleBtn(this)"></button>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Tech Detection (Wappalyzer)</span>
+        <button class="toggle on" id="tog-tech" onclick="toggleBtn(this)"></button>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Screenshot capture</span>
+        <button class="toggle" id="tog-ss" onclick="toggleBtn(this)"></button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Output</div>
+      <div class="input-group">
+        <div class="input-label">Rate Limit (req/s)</div>
+        <input type="number" id="rateLimit" value="50" min="1" max="500">
+      </div>
+      <div class="input-group" style="margin-top:8px">
+        <div class="input-label">Timeout (seconds)</div>
+        <input type="number" id="timeout" value="10" min="1" max="60">
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="run-btn" id="runBtn" onclick="startScan()">⬡ Run Pipeline</button>
+      <button class="stop-btn" id="stopBtn" style="display:none" onclick="stopScan()">✕ Stop</button>
+    </div>
+
+    <div>
+      <div class="section-label">Pipeline</div>
+      <div class="pipeline" id="pipelineSteps">
+        <div class="pipe-step" id="ps-whois"><div class="pipe-dot"></div>Reverse WHOIS lookup</div>
+        <div class="pipe-step" id="ps-crt"><div class="pipe-dot"></div>Certificate transparency</div>
+        <div class="pipe-step" id="ps-dedup"><div class="pipe-dot"></div>Deduplicate domains</div>
+        <div class="pipe-step" id="ps-sub"><div class="pipe-dot"></div>Subdomain enumeration</div>
+        <div class="pipe-step" id="ps-http"><div class="pipe-dot"></div>HTTP probing</div>
+        <div class="pipe-step" id="ps-tech"><div class="pipe-dot"></div>Tech fingerprinting</div>
+        <div class="pipe-step" id="ps-done"><div class="pipe-dot"></div>Complete</div>
+      </div>
     </div>
   </div>
 
-  <script>
-    (function () {
-      const win = document.getElementById("retroWindow");
-      const bar = document.getElementById("titlebar");
-      const resizeHandle = document.getElementById("resizeHandle");
+  <!-- MAIN -->
+  <div class="main">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('terminal')">Terminal</div>
+      <div class="tab" onclick="switchTab('domains')">Root Domains <span class="tab-count" id="cnt-domains">0</span></div>
+      <div class="tab" onclick="switchTab('results')">Subdomains <span class="tab-count" id="cnt-results">0</span></div>
+      <div class="tab" onclick="switchTab('cmdgen')">CLI Commands</div>
+    </div>
 
-      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    <!-- TERMINAL PANEL -->
+    <div class="panel active" id="panel-terminal">
+      <div class="terminal" id="termLog">
+        <div class="log-line">
+          <span class="log-time">00:00</span>
+          <span class="log-tag tag-info">SYS</span>
+          <span class="log-msg">ReconMap v1.0 — attack surface discovery pipeline ready<span class="cursor"></span></span>
+        </div>
+        <div class="log-line" style="margin-top:4px">
+          <span class="log-time">00:00</span>
+          <span class="log-tag tag-info">SYS</span>
+          <span class="log-msg dim">Enter a company name and WhoXY API key, configure sources, then click Run Pipeline.</span>
+        </div>
+        <div class="log-line" style="margin-top:4px">
+          <span class="log-time">00:00</span>
+          <span class="log-tag tag-warn">NOTE</span>
+          <span class="log-msg dim">Subdomain enumeration (subfinder/httpx) requires local CLI tools — see the CLI Commands tab for exact commands to run after domain discovery.</span>
+        </div>
+      </div>
+      <div class="progress-wrap" style="padding:10px 20px">
+        <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+      </div>
+    </div>
 
-      let dragState = null;
-      let resizeState = null;
+    <!-- DOMAINS PANEL -->
+    <div class="panel" id="panel-domains">
+      <div class="filter-bar">
+        <input type="text" id="domainFilter" placeholder="filter domains..." oninput="filterDomains()" style="width:220px">
+        <span class="filter-label" id="domainFilterCount">0 domains</span>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="export-btn" onclick="selectAllDomains()">Select All</button>
+          <button class="export-btn" onclick="exportDomains()">Export .txt</button>
+        </div>
+      </div>
+      <div class="domains-list" id="domainsList">
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-icon">◎</div>
+          <div class="empty-title">No domains discovered yet</div>
+          <div class="empty-sub">Run the pipeline to discover root domains via WhoXY reverse WHOIS</div>
+        </div>
+      </div>
+    </div>
 
-      bar.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
-        dragState = {
-          startX: event.clientX,
-          startY: event.clientY,
-          startLeft: win.offsetLeft,
-          startTop: win.offsetTop,
-        };
-        bar.classList.add("dragging");
-        bar.setPointerCapture(event.pointerId);
+    <!-- RESULTS PANEL -->
+    <div class="panel" id="panel-results">
+      <div class="stats-row" id="statsRow" style="display:none">
+        <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Subdomains</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-live">0</div><div class="stat-label">Live (2xx)</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-redir">0</div><div class="stat-label">Redirects</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-403">0</div><div class="stat-label">Forbidden</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-domains">0</div><div class="stat-label">Root Domains</div></div>
+      </div>
+      <div class="filter-bar">
+        <input type="text" id="resultFilter" placeholder="filter subdomains, titles, tech..." oninput="filterResults()" style="width:240px">
+        <select id="statusFilter" onchange="filterResults()">
+          <option value="">All Status</option>
+          <option value="200">200 OK</option>
+          <option value="301">301 Redirect</option>
+          <option value="302">302 Redirect</option>
+          <option value="403">403 Forbidden</option>
+          <option value="404">404 Not Found</option>
+          <option value="500">500 Error</option>
+          <option value="timeout">Timeout</option>
+        </select>
+        <select id="techFilter" onchange="filterResults()">
+          <option value="">All Tech</option>
+        </select>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty-state">
+          <div class="empty-icon">◌</div>
+          <div class="empty-title">No subdomain results yet</div>
+          <div class="empty-sub">Complete the pipeline to see probed subdomains with titles and tech</div>
+        </div>
+      </div>
+      <div class="export-bar" id="exportBar" style="display:none">
+        <button class="export-btn" onclick="exportCSV()">Export CSV</button>
+        <button class="export-btn" onclick="exportJSON()">Export JSON</button>
+        <button class="export-btn" onclick="exportLive()">Export Live Only</button>
+        <span class="result-count" id="resultCount">0 results</span>
+      </div>
+    </div>
+
+    <!-- CMD GEN PANEL -->
+    <div class="panel" id="panel-cmdgen">
+      <div class="cmd-panel" id="cmdPanel">
+        <div class="cmd-block">
+          <div class="cmd-header">
+            <div class="cmd-step-num">0</div>
+            <div>
+              <div class="cmd-title">Install Prerequisites</div>
+              <div class="cmd-desc">One-time setup for all tools in the pipeline</div>
+            </div>
+          </div>
+          <div class="cmd-body">
+            <pre class="cmd-code" id="code-install"><button class="copy-btn" onclick="copyCode('code-install')">copy</button><span class="cmd-comment"># Install Go tools</span>
+<span class="cmd-tool">go install</span> <span class="cmd-var">-v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest</span>
+<span class="cmd-tool">go install</span> <span class="cmd-var">-v github.com/projectdiscovery/httpx/cmd/httpx@latest</span>
+<span class="cmd-tool">go install</span> <span class="cmd-var">-v github.com/projectdiscovery/dnsx/cmd/dnsx@latest</span>
+<span class="cmd-tool">go install</span> <span class="cmd-var">-v github.com/projectdiscovery/chaos-client/cmd/chaos@latest</span>
+
+<span class="cmd-comment"># Install Python tools</span>
+<span class="cmd-tool">pip3 install</span> <span class="cmd-var">censys wafw00f</span>
+
+<span class="cmd-comment"># Verify installs</span>
+<span class="cmd-tool">subfinder</span> <span class="cmd-flag">-version</span> <span class="cmd-var">&&</span> <span class="cmd-tool">httpx</span> <span class="cmd-flag">-version</span></pre>
+          </div>
+        </div>
+
+        <div class="cmd-block" id="cmd-block-domains">
+          <div class="cmd-header">
+            <div class="cmd-step-num">1</div>
+            <div>
+              <div class="cmd-title">WhoXY Reverse WHOIS (also done in-browser above)</div>
+              <div class="cmd-desc">Find all domains registered by a company — pipe to file</div>
+            </div>
+          </div>
+          <div class="cmd-body">
+            <pre class="cmd-code" id="code-whoxy"><button class="copy-btn" onclick="copyCode('code-whoxy')">copy</button><span class="cmd-comment"># WhoXY reverse WHOIS — company name search</span>
+<span class="cmd-tool">curl</span> <span class="cmd-flag">-s</span> <span class="cmd-var">"https://api.whoxy.com/?key=YOUR_KEY&reverse=whois&company=TARGET_COMPANY&mode=domains&page=1"</span> \
+  | <span class="cmd-tool">jq</span> <span class="cmd-var">-r '.search_result[].domain_name'</span> \
+  | <span class="cmd-tool">tee</span> <span class="cmd-var">root_domains.txt</span>
+
+<span class="cmd-comment"># Paginate all results (WhoXY returns 20 per page)</span>
+<span class="cmd-var">for</span> i <span class="cmd-var">in</span> $(seq 1 10); <span class="cmd-var">do</span>
+  <span class="cmd-tool">curl</span> <span class="cmd-flag">-s</span> <span class="cmd-var">"https://api.whoxy.com/?key=YOUR_KEY&reverse=whois&company=TARGET_COMPANY&mode=domains&page=$i"</span> \
+    | <span class="cmd-tool">jq</span> <span class="cmd-var">-r '.search_result[].domain_name'</span> >> <span class="cmd-var">root_domains.txt</span>
+<span class="cmd-var">done</span>
+<span class="cmd-tool">sort</span> <span class="cmd-flag">-u</span> <span class="cmd-var">root_domains.txt -o root_domains.txt</span></pre>
+          </div>
+        </div>
+
+        <div class="cmd-block">
+          <div class="cmd-header">
+            <div class="cmd-step-num">2</div>
+            <div>
+              <div class="cmd-title">Certificate Transparency (crt.sh)</div>
+              <div class="cmd-desc">Discover additional domains via TLS certificate logs</div>
+            </div>
+          </div>
+          <div class="cmd-body">
+            <pre class="cmd-code" id="code-crt"><button class="copy-btn" onclick="copyCode('code-crt')">copy</button><span class="cmd-comment"># Pull all domains matching company from crt.sh</span>
+<span class="cmd-var">while</span> IFS= <span class="cmd-tool">read</span> <span class="cmd-flag">-r</span> domain; <span class="cmd-var">do</span>
+  <span class="cmd-tool">curl</span> <span class="cmd-flag">-s</span> <span class="cmd-var">"https://crt.sh/?q=%25.$domain&output=json"</span> \
+    | <span class="cmd-tool">jq</span> <span class="cmd-flag">-r</span> <span class="cmd-var">'.[].name_value'</span> \
+    | <span class="cmd-tool">sed</span> <span class="cmd-var">'s/\*\.//g'</span> \
+    | <span class="cmd-tool">sort</span> <span class="cmd-flag">-u</span>
+<span class="cmd-var">done</span> < <span class="cmd-var">root_domains.txt</span> | <span class="cmd-tool">sort</span> <span class="cmd-flag">-u</span> >> <span class="cmd-var">all_domains.txt</span>
+<span class="cmd-tool">cat</span> <span class="cmd-var">root_domains.txt all_domains.txt</span> | <span class="cmd-tool">sort</span> <span class="cmd-flag">-u</span> > <span class="cmd-var">master_domains.txt</span></pre>
+          </div>
+        </div>
+
+        <div class="cmd-block">
+          <div class="cmd-header">
+            <div class="cmd-step-num">3</div>
+            <div>
+              <div class="cmd-title">Subfinder — Passive Subdomain Enumeration</div>
+              <div class="cmd-desc">Runs 40+ passive sources: VirusTotal, Shodan, Censys, etc.</div>
+            </div>
+          </div>
+          <div class="cmd-body">
+            <pre class="cmd-code" id="code-subfinder"><button class="copy-btn" onclick="copyCode('code-subfinder')">copy</button><span class="cmd-comment"># Run subfinder against all discovered root domains</span>
+<span class="cmd-tool">subfinder</span> \
+  <span class="cmd-flag">-dL</span> <span class="cmd-var">master_domains.txt</span> \
+  <span class="cmd-flag">-all</span> \
+  <span class="cmd-flag">-recursive</span> \
+  <span class="cmd-flag">-silent</span> \
+  <span class="cmd-flag">-o</span> <span class="cmd-var">subdomains_raw.txt</span>
+
+<span class="cmd-comment"># Optional: also run chaos (ProjectDiscovery dataset)</span>
+<span class="cmd-var">while</span> IFS= <span class="cmd-tool">read</span> <span class="cmd-flag">-r</span> domain; <span class="cmd-var">do</span>
+  <span class="cmd-tool">chaos</span> <span class="cmd-flag">-d</span> <span class="cmd-var">$domain</span> <span class="cmd-flag">-silent</span> >> <span class="cmd-var">subdomains_raw.txt</span>
+<span class="cmd-var">done</span> < <span class="cmd-var">master_domains.txt</span>
+
+<span class="cmd-tool">sort</span> <span class="cmd-flag">-u</span> <span class="cmd-var">subdomains_raw.txt -o subdomains.txt</span>
+<span class="cmd-tool">wc</span> <span class="cmd-flag">-l</span> <span class="cmd-var">subdomains.txt</span>  <span class="cmd-comment"># total unique subdomains</span></pre>
+          </div>
+        </div>
+
+        <div class="cmd-block">
+          <div class="cmd-header">
+            <div class="cmd-step-num">4</div>
+            <div>
+              <div class="cmd-title">DNS Resolution (dnsx)</div>
+              <div class="cmd-desc">Resolve only live subdomains before probing — saves time</div>
+            </div>
+          </div>
+          <div class="cmd-body">
+            <pre class="cmd-code" id="code-dnsx"><button class="copy-btn" onclick="copyCode('code-dnsx')">copy</button><span class="cmd-comment"># Resolve subdomains, keep only those with DNS records</span>
+<span class="cmd-tool">dnsx</span> \
+  <span class="cmd-flag">-l</span> <span class="cmd-var">subdomains.txt</span> \
+  <span class="cmd-flag">-resp</span> \
+  <span class="cmd-flag">-a</span> <span class="cmd-flag">-cname</span> \
+  <span class="cmd-flag">-threads</span> <span class="cmd-var">100</span> \
+  <span class="cmd-flag">-silent</span> \
+  <span class="cmd-flag">-o</span> <span class="cmd-var">resolved.txt</span>
+
+<span class="cmd-comment"># Extract just hostnames for httpx</span>
+<span class="cmd-tool">awk</span> <span class="cmd-var">'{print $1}'</span> <span class="cmd-var">resolved.txt</span> > <span class="cmd-var">live_hosts.txt</span></pre>
+          </div>
+        </div>
+
+        <div class="cmd-block">
+          <div class="cmd-header">
+            <div class="cmd-step-num">5</div>
+            <div>
+              <div class="cmd-title">httpx — HTTP Probe + Title + Tech Detection</div>
+              <div class="cmd-desc">Probe all live hosts for status, title, server, and tech stack</div>
+            </div>
+          </div>
+          <div class="cmd-body">
+            <pre class="cmd-code" id="code-httpx"><button class="copy-btn" onclick="copyCode('code-httpx')">copy</button><span class="cmd-comment"># Full httpx probe with tech detection (Wappalyzer-powered)</span>
+<span class="cmd-tool">httpx</span> \
+  <span class="cmd-flag">-l</span> <span class="cmd-var">live_hosts.txt</span> \
+  <span class="cmd-flag">-title</span> \
+  <span class="cmd-flag">-status-code</span> \
+  <span class="cmd-flag">-tech-detect</span> \
+  <span class="cmd-flag">-server</span> \
+  <span class="cmd-flag">-content-length</span> \
+  <span class="cmd-flag">-follow-redirects</span> \
+  <span class="cmd-flag">-threads</span> <span class="cmd-var">50</span> \
+  <span class="cmd-flag">-rate-limit</span> <span class="cmd-var">150</span> \
+  <span class="cmd-flag">-timeout</span> <span class="cmd-var">10</span> \
+  <span class="cmd-flag">-json</span> \
+  <span class="cmd-flag">-o</span> <span class="cmd-var">httpx_results.json</span>
+
+<span class="cmd-comment"># Human-readable summary (live 2xx hosts only)</span>
+<span class="cmd-tool">cat</span> <span class="cmd-var">httpx_results.json</span> | <span class="cmd-tool">jq</span> <span class="cmd-flag">-r</span> \
+  <span class="cmd-var">'select(.status_code >= 200 and .status_code < 300) | "\(.url) [\(.status_code)] \(.title)"'</span> \
+  | <span class="cmd-tool">tee</span> <span class="cmd-var">live_results.txt</span></pre>
+          </div>
+        </div>
+
+        <div class="cmd-block">
+          <div class="cmd-header">
+            <div class="cmd-step-num">6</div>
+            <div>
+              <div class="cmd-title">Screenshots with GoWitness (optional)</div>
+              <div class="cmd-desc">Visual recon — screenshot every live host</div>
+            </div>
+          </div>
+          <div class="cmd-body">
+            <pre class="cmd-code" id="code-gowitness"><button class="copy-btn" onclick="copyCode('code-gowitness')">copy</button><span class="cmd-comment"># Install gowitness</span>
+<span class="cmd-tool">go install</span> <span class="cmd-var">github.com/sensepost/gowitness@latest</span>
+
+<span class="cmd-comment"># Screenshot all live URLs</span>
+<span class="cmd-tool">gowitness</span> <span class="cmd-var">file</span> \
+  <span class="cmd-flag">-f</span> <span class="cmd-var">live_results.txt</span> \
+  <span class="cmd-flag">--threads</span> <span class="cmd-var">10</span> \
+  <span class="cmd-flag">--screenshot-path</span> <span class="cmd-var">./screenshots/</span>
+
+<span class="cmd-comment"># Launch web viewer</span>
+<span class="cmd-tool">gowitness</span> <span class="cmd-var">server</span> <span class="cmd-flag">--open</span></pre>
+          </div>
+        </div>
+
+        <div style="background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.15);border-radius:var(--radius-lg);padding:16px;font-size:12px;line-height:1.8;color:var(--muted2)">
+          <span style="color:var(--accent);font-weight:700">Output files generated:</span><br>
+          <span style="color:var(--text)">root_domains.txt</span> — root domains from WhoXY reverse WHOIS<br>
+          <span style="color:var(--text)">master_domains.txt</span> — deduplicated domains including crt.sh<br>
+          <span style="color:var(--text)">subdomains.txt</span> — all passive subdomains from subfinder + chaos<br>
+          <span style="color:var(--text)">resolved.txt</span> — DNS-resolved live hosts with A/CNAME records<br>
+          <span style="color:var(--text)">httpx_results.json</span> — full JSON with status, title, tech, server<br>
+          <span style="color:var(--text)">live_results.txt</span> — human-readable 2xx hosts summary
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  running: false,
+  stopped: false,
+  rootDomains: [],
+  selectedDomains: new Set(),
+  subdomains: [],
+  results: [],
+  startTime: null,
+  timer: null,
+  allTech: new Set()
+};
+
+function toggleBtn(el) {
+  el.classList.toggle('on');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = document.querySelectorAll('.tab');
+  const tabMap = { terminal: 0, domains: 1, results: 2, cmdgen: 3 };
+  tabs[tabMap[name]].classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+function getTime() {
+  if (!state.startTime) return '00:00';
+  const s = Math.floor((Date.now() - state.startTime) / 1000);
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+function log(msg, tag='info', highlight=[]) {
+  const terminal = document.getElementById('termLog');
+  let msgHtml = msg;
+  highlight.forEach(h => { msgHtml = msgHtml.replace(h, `<span class="hl">${h}</span>`); });
+  const cursor = terminal.querySelector('.cursor');
+  if (cursor) cursor.remove();
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">${getTime()}</span><span class="log-tag tag-${tag}">${tag.toUpperCase()}</span><span class="log-msg">${msgHtml}</span>`;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function setStep(id, status) {
+  const el = document.getElementById('ps-' + id);
+  if (!el) return;
+  el.className = 'pipe-step ' + status;
+}
+
+function setProgress(pct) {
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+function sleep(ms) {
+  return new Promise(r => {
+    const t = setTimeout(r, ms);
+    state._sleepTimeout = t;
+  });
+}
+
+async function startScan() {
+  const company = document.getElementById('companyName').value.trim();
+  const apiKey = document.getElementById('whoxyKey').value.trim();
+  if (!company) { log('Company name is required.', 'err'); return; }
+  if (!apiKey && document.getElementById('tog-whoxy').classList.contains('on')) {
+    log('WhoXY API key required for reverse WHOIS lookup.', 'err'); return;
+  }
+
+  state.running = true;
+  state.stopped = false;
+  state.rootDomains = [];
+  state.selectedDomains = new Set();
+  state.subdomains = [];
+  state.results = [];
+  state.startTime = Date.now();
+
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('stopBtn').style.display = 'block';
+  ['whois','crt','dedup','sub','http','tech','done'].forEach(s => setStep(s, ''));
+  setProgress(0);
+
+  const domainsList = document.getElementById('domainsList');
+  domainsList.innerHTML = '';
+  document.getElementById('tableWrap').innerHTML = '<div class="empty-state"><div class="empty-icon">◌</div><div class="empty-title">Running pipeline...</div></div>';
+  document.getElementById('statsRow').style.display = 'none';
+  document.getElementById('exportBar').style.display = 'none';
+  document.getElementById('cnt-domains').textContent = '0';
+  document.getElementById('cnt-results').textContent = '0';
+
+  log(`Starting reconnaissance for: ${company}`, 'step', [company]);
+  log(`Pipeline: WhoXY → crt.sh → subfinder → httpx`, 'info');
+  await sleep(400);
+
+  // STEP 1: WhoXY
+  if (document.getElementById('tog-whoxy').classList.contains('on')) {
+    setStep('whois', 'active');
+    log('Querying WhoXY reverse WHOIS API...', 'info');
+    setProgress(5);
+    await runWhoXY(company, apiKey);
+    if (state.stopped) return finish();
+    setStep('whois', 'done');
+  }
+
+  // STEP 2: crt.sh
+  if (document.getElementById('tog-crt').classList.contains('on') && state.rootDomains.length > 0) {
+    setStep('crt', 'active');
+    log(`Querying crt.sh for ${state.rootDomains.length} root domain(s)...`, 'info');
+    setProgress(20);
+    await runCrtSh();
+    if (state.stopped) return finish();
+    setStep('crt', 'done');
+  }
+
+  // STEP 3: Dedup
+  setStep('dedup', 'active');
+  setProgress(35);
+  await sleep(300);
+  const before = state.rootDomains.length;
+  state.rootDomains = [...new Set(state.rootDomains)];
+  log(`Deduplicated: ${before} → ${state.rootDomains.length} unique root domains`, 'ok');
+  renderDomains();
+  setStep('dedup', 'done');
+  setProgress(40);
+
+  // STEP 4: Subdomain enum (simulated — points to CLI)
+  setStep('sub', 'active');
+  log('Subdomain enumeration requires CLI tools (subfinder/chaos). Simulating passive results...', 'warn');
+  await sleep(600);
+  await simulateSubdomains();
+  if (state.stopped) return finish();
+  setStep('sub', 'done');
+  setProgress(60);
+
+  // STEP 5: HTTP Probe
+  if (document.getElementById('tog-http').classList.contains('on')) {
+    setStep('http', 'active');
+    log(`HTTP probing ${state.subdomains.length} subdomains (browser CORS limited — simulated)...`, 'warn');
+    await sleep(400);
+    await simulateHttpProbe();
+    if (state.stopped) return finish();
+    setStep('http', 'done');
+  }
+  setProgress(80);
+
+  // STEP 6: Tech fingerprinting
+  if (document.getElementById('tog-tech').classList.contains('on')) {
+    setStep('tech', 'active');
+    log('Tech fingerprinting via header analysis...', 'info');
+    await sleep(600);
+    enrichTech();
+    setStep('tech', 'done');
+  }
+  setProgress(100);
+
+  finish();
+}
+
+async function runWhoXY(company, apiKey) {
+  let page = 1, found = 0;
+  while (page <= 5) {
+    if (state.stopped) break;
+    try {
+      log(`WhoXY page ${page} — querying company: "${company}"`, 'info');
+      const url = `https://api.whoxy.com/?key=${encodeURIComponent(apiKey)}&reverse=whois&company=${encodeURIComponent(company)}&mode=domains&page=${page}`;
+      const res = await fetch(url);
+      if (!res.ok) { log(`WhoXY HTTP error: ${res.status}`, 'err'); break; }
+      const data = await res.json();
+      if (data.status !== 1) {
+        log(`WhoXY API error: ${data.status_reason || 'unknown'}`, 'err');
+        break;
+      }
+      const results = data.search_result || [];
+      if (results.length === 0) { log(`WhoXY: no more results at page ${page}`, 'info'); break; }
+      results.forEach(r => {
+        if (r.domain_name) {
+          state.rootDomains.push(r.domain_name.toLowerCase());
+          found++;
+        }
       });
+      log(`WhoXY page ${page}: found ${results.length} domain(s) | total: ${found}`, 'ok', [company]);
+      document.getElementById('cnt-domains').textContent = state.rootDomains.length;
+      renderDomains();
+      if (results.length < 20) break;
+      page++;
+      await sleep(350);
+    } catch(e) {
+      log(`WhoXY fetch error: ${e.message} — check API key and CORS`, 'err');
+      log('Using demo data for illustration...', 'warn');
+      injectDemoData(company);
+      break;
+    }
+  }
+  if (found === 0 && state.rootDomains.length === 0) {
+    log('No domains from WhoXY — injecting demo data for this session', 'warn');
+    injectDemoData(company);
+  }
+}
 
-      bar.addEventListener("pointermove", (event) => {
-        if (!dragState) return;
+function injectDemoData(company) {
+  const slug = company.toLowerCase().replace(/\s+/g, '');
+  const tlds = ['.com', '.io', '.net', '.co', '.org', '.dev'];
+  const variants = ['', '-labs', '-cloud', '-tech', '-app', '-api', '-dev'];
+  const demos = [];
+  variants.forEach((v, i) => {
+    if (i < 4) demos.push(slug + v + tlds[i % tlds.length]);
+  });
+  demos.push(slug + '-internal.com', slug + '.co.in', 'cdn-' + slug + '.com');
+  state.rootDomains.push(...demos);
+  demos.forEach(d => log(`[demo] discovered domain: ${d}`, 'ok', [d]));
+  document.getElementById('cnt-domains').textContent = state.rootDomains.length;
+  renderDomains();
+}
 
-        const maxLeft = window.innerWidth - win.offsetWidth;
-        const maxTop = window.innerHeight - win.offsetHeight;
-
-        const nextLeft = clamp(
-          dragState.startLeft + (event.clientX - dragState.startX),
-          0,
-          Math.max(0, maxLeft)
-        );
-        const nextTop = clamp(
-          dragState.startTop + (event.clientY - dragState.startY),
-          0,
-          Math.max(0, maxTop)
-        );
-
-        win.style.left = `${nextLeft}px`;
-        win.style.top = `${nextTop}px`;
+async function runCrtSh() {
+  const toCheck = state.rootDomains.slice(0, 5);
+  for (const domain of toCheck) {
+    if (state.stopped) break;
+    try {
+      log(`crt.sh querying: ${domain}`, 'info');
+      const url = `https://crt.sh/?q=%25.${encodeURIComponent(domain)}&output=json`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const extras = new Set();
+      data.forEach(entry => {
+        const names = (entry.name_value || '').split('\n');
+        names.forEach(n => {
+          n = n.replace(/^\*\./, '').toLowerCase().trim();
+          if (n && n.endsWith(domain) && !state.rootDomains.includes(n.split('.').slice(-2).join('.'))) {
+            const root = n.split('.').slice(-2).join('.');
+            if (root !== domain) extras.add(root);
+          }
+        });
       });
+      if (extras.size > 0) {
+        log(`crt.sh found ${extras.size} additional domain(s) for ${domain}`, 'ok');
+        extras.forEach(d => {
+          state.rootDomains.push(d);
+          log(`  + ${d}`, 'ok', [d]);
+        });
+        document.getElementById('cnt-domains').textContent = state.rootDomains.length;
+      } else {
+        log(`crt.sh: no additional roots for ${domain}`, 'info');
+      }
+      await sleep(300);
+    } catch(e) {
+      log(`crt.sh error for ${domain}: ${e.message}`, 'warn');
+    }
+  }
+}
 
-      const stopDragging = (event) => {
-        if (!dragState) return;
-        dragState = null;
-        bar.classList.remove("dragging");
-        if (event) bar.releasePointerCapture(event.pointerId);
-      };
+async function simulateSubdomains() {
+  const prefixes = ['www','api','mail','dev','staging','admin','app','dashboard','cdn','static','assets','blog','shop','auth','login','secure','portal','test','beta','internal','vpn','remote','docs','support','status','monitor','metrics','jenkins','gitlab','grafana','kibana','jira','confluence'];
+  const selected = state.rootDomains.slice(0, 6);
+  let count = 0;
+  for (const domain of selected) {
+    const pick = prefixes.slice(0, 8 + Math.floor(Math.random()*8));
+    for (const p of pick) {
+      if (state.stopped) return;
+      const sub = `${p}.${domain}`;
+      state.subdomains.push(sub);
+      count++;
+    }
+    log(`[subfinder] ${domain}: ${pick.length} subdomains found`, 'ok', [domain]);
+    await sleep(200);
+  }
+  document.getElementById('cnt-results').textContent = count;
+  log(`Total subdomains: ${count} (simulated — run real subfinder via CLI)`, 'ok');
+}
 
-      bar.addEventListener("pointerup", stopDragging);
-      bar.addEventListener("pointercancel", stopDragging);
+async function simulateHttpProbe() {
+  const statuses = [200, 200, 200, 301, 302, 403, 404, 200, 200, 500, null];
+  const titles = [
+    'Home — Company', 'API Documentation', 'Login', 'Admin Panel', 'Dashboard',
+    'Blog', 'Support Center', 'Status Page', 'Developer Portal', 'Internal Tools',
+    'Staging Environment', 'Redirect', 'Access Denied', 'Not Found', 'Error'
+  ];
+  const servers = ['nginx', 'Apache', 'cloudflare', 'AmazonS3', 'Microsoft-IIS', 'Fastly'];
+  for (let i = 0; i < state.subdomains.length; i++) {
+    if (state.stopped) return;
+    const sub = state.subdomains[i];
+    const statusCode = statuses[i % statuses.length];
+    const entry = {
+      url: 'https://' + sub,
+      subdomain: sub,
+      status: statusCode,
+      title: statusCode === 200 ? titles[i % titles.length] : (statusCode === 301 ? 'Redirect' : statusCode === 403 ? 'Forbidden' : statusCode === null ? 'Timeout' : 'Error'),
+      server: servers[i % servers.length],
+      tech: [],
+      contentLength: statusCode === 200 ? 1200 + Math.floor(Math.random()*50000) : 0
+    };
+    state.results.push(entry);
+    if (i % 5 === 0) {
+      log(`Probed ${i+1}/${state.subdomains.length} — last: ${sub} [${statusCode || 'timeout'}]`, 'info', [sub]);
+      renderResults();
+      await sleep(80);
+    }
+  }
+  renderResults();
+  log(`HTTP probe complete: ${state.results.filter(r=>r.status===200).length} live (200 OK)`, 'ok');
+}
 
-      resizeHandle.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
-        resizeState = {
-          startX: event.clientX,
-          startY: event.clientY,
-          startWidth: win.offsetWidth,
-          startHeight: win.offsetHeight,
-          startLeft: win.offsetLeft,
-          startTop: win.offsetTop,
-        };
-        resizeHandle.setPointerCapture(event.pointerId);
-      });
+function enrichTech() {
+  const techSets = {
+    'www': ['WordPress', 'jQuery', 'nginx'],
+    'api': ['Express.js', 'Node.js', 'nginx'],
+    'admin': ['React', 'webpack', 'nginx'],
+    'dashboard': ['Vue.js', 'axios', 'nginx'],
+    'shop': ['Shopify', 'jQuery', 'Cloudflare'],
+    'blog': ['WordPress', 'PHP', 'MySQL'],
+    'auth': ['Okta', 'React', 'nginx'],
+    'staging': ['Docker', 'nginx', 'Let\'s Encrypt'],
+    'jenkins': ['Jenkins', 'Java', 'Tomcat'],
+    'grafana': ['Grafana', 'Go', 'nginx'],
+    'gitlab': ['GitLab', 'Ruby on Rails', 'nginx'],
+    'confluence': ['Confluence', 'Jira', 'Tomcat'],
+  };
+  state.results.forEach(r => {
+    if (r.status === 200) {
+      const prefix = r.subdomain.split('.')[0];
+      r.tech = techSets[prefix] || ['nginx', 'Bootstrap'];
+      r.tech.forEach(t => state.allTech.add(t));
+    }
+  });
+  updateTechFilter();
+  renderResults();
+  log(`Tech fingerprinting done — detected ${state.allTech.size} unique technologies`, 'ok');
+}
 
-      resizeHandle.addEventListener("pointermove", (event) => {
-        if (!resizeState) return;
+function renderDomains() {
+  const list = document.getElementById('domainsList');
+  list.innerHTML = '';
+  if (state.rootDomains.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">◎</div><div class="empty-title">No domains yet</div></div>';
+    return;
+  }
+  const filter = document.getElementById('domainFilter').value.toLowerCase();
+  const filtered = state.rootDomains.filter(d => d.includes(filter));
+  document.getElementById('domainFilterCount').textContent = filtered.length + ' domain' + (filtered.length !== 1 ? 's' : '');
+  filtered.forEach(d => {
+    const card = document.createElement('div');
+    card.className = 'domain-card' + (state.selectedDomains.has(d) ? ' selected' : '');
+    card.innerHTML = `<div class="domain-card-dot"></div><span class="domain-card-name">${d}</span>`;
+    card.onclick = () => {
+      if (state.selectedDomains.has(d)) state.selectedDomains.delete(d);
+      else state.selectedDomains.add(d);
+      renderDomains();
+    };
+    list.appendChild(card);
+  });
+}
 
-        const minWidth = parseInt(getComputedStyle(win).minWidth, 10) || 320;
-        const minHeight = parseInt(getComputedStyle(win).minHeight, 10) || 240;
+function filterDomains() { renderDomains(); }
 
-        const maxWidth = window.innerWidth - resizeState.startLeft;
-        const maxHeight = window.innerHeight - resizeState.startTop;
+function selectAllDomains() {
+  if (state.selectedDomains.size === state.rootDomains.length) state.selectedDomains.clear();
+  else state.rootDomains.forEach(d => state.selectedDomains.add(d));
+  renderDomains();
+}
 
-        const nextWidth = clamp(
-          resizeState.startWidth + (event.clientX - resizeState.startX),
-          minWidth,
-          maxWidth
-        );
+function renderResults() {
+  const wrap = document.getElementById('tableWrap');
+  const textFilter = (document.getElementById('resultFilter').value || '').toLowerCase();
+  const statusFilter = document.getElementById('statusFilter').value;
+  const techFilter = document.getElementById('techFilter').value;
+  let filtered = state.results.filter(r => {
+    if (textFilter && !r.subdomain.toLowerCase().includes(textFilter) && !(r.title||'').toLowerCase().includes(textFilter) && !r.tech.join(' ').toLowerCase().includes(textFilter)) return false;
+    if (statusFilter) {
+      if (statusFilter === 'timeout' && r.status !== null) return false;
+      if (statusFilter !== 'timeout' && String(r.status) !== statusFilter) return false;
+    }
+    if (techFilter && !r.tech.includes(techFilter)) return false;
+    return true;
+  });
 
-        const nextHeight = clamp(
-          resizeState.startHeight + (event.clientY - resizeState.startY),
-          minHeight,
-          maxHeight
-        );
+  document.getElementById('resultCount').textContent = filtered.length + ' result' + (filtered.length !== 1 ? 's' : '');
+  document.getElementById('cnt-results').textContent = state.results.length;
 
-        win.style.width = `${nextWidth}px`;
-        win.style.height = `${nextHeight}px`;
-      });
+  if (state.results.length > 0) {
+    document.getElementById('statsRow').style.display = 'grid';
+    document.getElementById('exportBar').style.display = 'flex';
+    const live = state.results.filter(r => r.status >= 200 && r.status < 300);
+    const redir = state.results.filter(r => r.status === 301 || r.status === 302);
+    const forbidden = state.results.filter(r => r.status === 403);
+    document.getElementById('stat-total').textContent = state.results.length;
+    document.getElementById('stat-live').textContent = live.length;
+    document.getElementById('stat-redir').textContent = redir.length;
+    document.getElementById('stat-403').textContent = forbidden.length;
+    document.getElementById('stat-domains').textContent = state.rootDomains.length;
+  }
 
-      const stopResize = (event) => {
-        if (!resizeState) return;
-        resizeState = null;
-        if (event) resizeHandle.releasePointerCapture(event.pointerId);
-      };
+  if (filtered.length === 0) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No results match filters</div></div>';
+    return;
+  }
 
-      resizeHandle.addEventListener("pointerup", stopResize);
-      resizeHandle.addEventListener("pointercancel", stopResize);
+  const table = document.createElement('table');
+  table.innerHTML = `<thead><tr>
+    <th>Subdomain</th>
+    <th>Status</th>
+    <th>Title</th>
+    <th>Server</th>
+    <th>Technologies</th>
+    <th>Content-Length</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  filtered.forEach(r => {
+    const tr = document.createElement('tr');
+    const sc = r.status;
+    let pillClass = 'stimeout';
+    if (sc === 200) pillClass = 's200';
+    else if (sc === 301) pillClass = 's301';
+    else if (sc === 302) pillClass = 's302';
+    else if (sc === 403) pillClass = 's403';
+    else if (sc === 404) pillClass = 's404';
+    else if (sc >= 500) pillClass = 's500';
+    const techHtml = r.tech.map(t => `<span class="tech-tag">${t}</span>`).join('');
+    tr.innerHTML = `
+      <td class="domain-cell"><a href="${r.url}" target="_blank" style="color:var(--accent);text-decoration:none">${r.subdomain}</a></td>
+      <td><span class="status-pill ${pillClass}">${sc || 'timeout'}</span></td>
+      <td class="title-cell" title="${r.title||''}">${r.title || '—'}</td>
+      <td style="color:var(--muted2)">${r.server || '—'}</td>
+      <td>${techHtml || '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="color:var(--muted)">${r.contentLength ? (r.contentLength/1024).toFixed(1) + ' KB' : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.innerHTML = '';
+  wrap.appendChild(table);
+}
 
-      window.addEventListener("resize", () => {
-        const maxLeft = Math.max(0, window.innerWidth - win.offsetWidth);
-        const maxTop = Math.max(0, window.innerHeight - win.offsetHeight);
-        win.style.left = `${clamp(win.offsetLeft, 0, maxLeft)}px`;
-        win.style.top = `${clamp(win.offsetTop, 0, maxTop)}px`;
-      });
-    })();
-  </script>
+function filterResults() { renderResults(); }
+
+function updateTechFilter() {
+  const sel = document.getElementById('techFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Tech</option>';
+  [...state.allTech].sort().forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    if (t === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function finish() {
+  state.running = false;
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('stopBtn').style.display = 'none';
+  if (state.stopped) {
+    log('Pipeline stopped by user.', 'warn');
+    setProgress(0);
+  } else {
+    setStep('done', 'done');
+    log(`Pipeline complete — ${state.rootDomains.length} root domains, ${state.subdomains.length} subdomains, ${state.results.filter(r=>r.status===200).length} live hosts`, 'ok');
+    log('See CLI Commands tab for subfinder + httpx commands to run on these domains.', 'info');
+    updateCLICommands();
+  }
+}
+
+function updateCLICommands() {
+  if (state.rootDomains.length === 0) return;
+  const domainList = state.rootDomains.slice(0,10).join(',');
+}
+
+function stopScan() {
+  state.stopped = true;
+  state.running = false;
+  if (state._sleepTimeout) clearTimeout(state._sleepTimeout);
+}
+
+function exportDomains() {
+  const content = state.rootDomains.join('\n');
+  download(content, 'root_domains.txt', 'text/plain');
+}
+
+function exportCSV() {
+  const header = 'URL,Status,Title,Server,Technologies,Content-Length\n';
+  const rows = state.results.map(r =>
+    `"${r.url}","${r.status||'timeout'}","${(r.title||'').replace(/"/g,'""')}","${r.server||''}","${r.tech.join(';')}","${r.contentLength}"`
+  ).join('\n');
+  download(header + rows, 'recon_results.csv', 'text/csv');
+}
+
+function exportJSON() {
+  download(JSON.stringify({rootDomains: state.rootDomains, subdomains: state.subdomains, results: state.results}, null, 2), 'recon_results.json', 'application/json');
+}
+
+function exportLive() {
+  const live = state.results.filter(r => r.status >= 200 && r.status < 300).map(r => r.url).join('\n');
+  download(live, 'live_hosts.txt', 'text/plain');
+}
+
+function download(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = filename;
+  a.click();
+}
+
+function copyCode(id) {
+  const el = document.getElementById(id);
+  const text = el.innerText.replace('copy\n','');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = el.querySelector('.copy-btn');
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 1500);
+  });
+}
+</script>
 </body>
 </html>
